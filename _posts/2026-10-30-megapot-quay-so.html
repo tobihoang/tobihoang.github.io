@@ -271,11 +271,20 @@ details.more > div{padding-bottom:16px}
   <h2 id="vi-sao">Vì sao contract không tự random được?</h2>
   <p>Mọi node chạy lại cùng một transaction phải ra cùng một kết quả, nên trong EVM không có hàm random thật. Những thứ trông có vẻ ngẫu nhiên như thời gian của block (<code>block.timestamp</code>) hay <code>block.prevrandao</code> đều là dữ liệu của block.</p>
   <p>Trên Base, block do <strong>một sequencer duy nhất</strong> (do Coinbase vận hành) sắp xếp. Sequencer biết trước dữ liệu block và chọn được transaction nào vào block nào. Nếu số trúng lấy thẳng từ dữ liệu block, sequencer sẽ biết trước kết quả. Vì vậy Megapot cần một nguồn bên ngoài: Pyth Entropy.</p>
+
+  <h3>Pyth Entropy là gì?</h3>
+  <p><strong>Pyth Network</strong> là một mạng oracle, tức là dịch vụ đưa dữ liệu từ bên ngoài vào blockchain. Pyth nổi tiếng nhất với dữ liệu giá tài sản cho các ứng dụng DeFi. <strong>Pyth Entropy</strong> là một sản phẩm khác của Pyth, chuyên cấp số ngẫu nhiên cho smart contract trên nhiều chain EVM, trong đó có Base. Dịch vụ cùng loại nổi tiếng khác là Chainlink VRF.</p>
+  <p>Cách dùng khá đơn giản: ứng dụng nào cần số ngẫu nhiên (game, mint NFT, xổ số) thì gọi contract Entropy và trả một khoản phí nhỏ bằng ETH. Vài giây sau, Entropy gọi ngược lại ứng dụng (callback) và đưa số ngẫu nhiên vào. Trong Entropy có hai vai:</p>
+  <ul>
+    <li><strong>Provider</strong>: bên giữ phần bí mật và gửi nó lên khi có yêu cầu. Trên Base, provider mặc định do chính Pyth vận hành bằng phần mềm tên Fortuna.</li>
+    <li><strong>Bên xin số</strong>: ở đây là contract của Megapot.</li>
+  </ul>
+  <p>Contract Entropy trên Base nằm ở địa chỉ <code>0x6E7D…81Bb</code>, và mọi yêu cầu, mọi lần trả số đều xem được trên <a href="https://entropy-explorer.pyth.network/?chain=base&amp;search=556741" target="_blank" rel="noopener">Pyth Entropy Explorer</a>.</p>
 </section>
 
 <section class="col flow">
   <h2 id="co-che">Cơ chế: hai nửa bí mật, trộn lại thành một</h2>
-  <p>Pyth Entropy dùng cách <strong>cam kết rồi mới công bố</strong> (commit–reveal). Bên giữ bí mật phải công bố trước dấu vân tay (giá trị hash) của con số. Tới lúc cần, họ công bố con số, và ai cũng tự băm lại để xem có đúng con số đã cam kết không. Một kỳ quay của Megapot đi qua bốn bước:</p>
+  <p>Bên trong, Pyth Entropy dùng cách <strong>cam kết rồi mới công bố</strong> (commit–reveal). Bên giữ bí mật phải công bố trước dấu vân tay (giá trị hash) của con số. Tới lúc cần, họ công bố con số, và ai cũng tự băm lại để xem có đúng con số đã cam kết không. Một kỳ quay của Megapot đi qua bốn bước:</p>
   <ol class="flowsteps">
     <li class="buy"><div class="when">Bước 1</div><div class="what">Hết giờ bán vé (17:00 UTC). Bất kỳ ai cũng gọi được hàm <code>runJackpot()</code>. Kỳ quay bị khóa: từ đây không ai mua thêm vé được.</div></li>
     <li class="draw"><div class="when">Bước 2</div><div class="what">Megapot gửi yêu cầu kèm phí tới Pyth Entropy. Entropy tạo <b>nửa thứ nhất</b> từ dữ liệu block và ghi công khai lên chain.</div></li>

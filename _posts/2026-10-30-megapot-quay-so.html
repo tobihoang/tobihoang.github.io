@@ -1,31 +1,31 @@
 ---
 layout: null
-title: "Ai chọn số trúng Megapot? Lần ngược một kỳ quay từ transaction tới từng quả bóng"
+title: "Megapot quay số thế nào, và có đáng tin không?"
 date: 2026-10-30 21:00:00 +0700
 categories: [Solidity, SmartContract, Megapot]
-permalink: /megapot-ai-chon-so-trung/
+permalink: /megapot-quay-so/
 interactive: true
-summary: "Lần ngược kỳ 133 từ hai transaction trên Base tới từng quả bóng: Pyth Entropy cam kết bằng chuỗi hash, ai biết trước kết quả, Megapot trả phí bao nhiêu, và một phòng kiểm chứng chạy ngay trong trình duyệt."
-description: "Mở hai transaction của kỳ 133 trên Base, decode từng event, đọc mã nguồn Pyth Entropy và Megapot, rồi tự tính lại sáu quả bóng chỉ từ dữ liệu công khai. Kèm phí Megapot trả cho Pyth, ai biết trước kết quả và các rủi ro bảo mật."
+summary: "Megapot không có máy quay số: contract xin số từ Pyth Entropy rồi tự đổi ra 5 số và bonus. Minh bạch tới đâu, an toàn tới đâu, kèm công cụ tự kiểm một kỳ ngay trong trình duyệt."
+description: "Megapot lấy số trúng từ Pyth Entropy theo cách cam kết rồi công bố. Bài này giải thích cơ chế, tự kiểm lại kỳ 133 từ dữ liệu on-chain, và xem ai còn phải tin: Pyth và owner Megapot."
 ---
 <!doctype html>
 <html lang="vi">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Mở hai transaction của kỳ 133 trên Base, decode từng event, đọc mã nguồn Pyth Entropy và Megapot, rồi tự tính lại sáu quả bóng chỉ từ dữ liệu công khai. Kèm phí Megapot trả cho Pyth, ai biết trước kết quả và các rủi ro bảo mật.">
+<meta name="description" content="Megapot lấy số trúng từ Pyth Entropy theo cách cam kết rồi công bố. Bài này giải thích cơ chế, tự kiểm lại kỳ 133 từ dữ liệu on-chain, và xem ai còn phải tin: Pyth và owner Megapot.">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Ai chọn số trúng Megapot? Lần ngược một kỳ quay từ transaction tới từng quả bóng">
-<meta property="og:description" content="Mở hai transaction của kỳ 133 trên Base, decode từng event, đọc mã nguồn Pyth Entropy và Megapot, rồi tự tính lại sáu quả bóng chỉ từ dữ liệu công khai. Kèm phí Megapot trả cho Pyth, ai biết trước kết quả và các rủi ro bảo mật.">
+<meta property="og:title" content="Megapot quay số thế nào, và có đáng tin không?">
+<meta property="og:description" content="Megapot lấy số trúng từ Pyth Entropy theo cách cam kết rồi công bố. Bài này giải thích cơ chế, tự kiểm lại kỳ 133 từ dữ liệu on-chain, và xem ai còn phải tin: Pyth và owner Megapot.">
 <meta name="twitter:card" content="summary">
-<title>Ai chọn số trúng Megapot?</title>
+<title>Megapot quay số thế nào?</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
 {% include theme-init.html %}
 <style>
 /* Layout: một cột bài viết ~700px, hình minh họa tràn tới ~1000px.
-   Màu mang nghĩa: xanh dương = số thường, hổ phách = bonus / phía Megapot, xanh ngọc = giá trị đã kiểm khớp, đỏ = cảnh báo. */
+   Màu mang nghĩa: xanh dương = số thường, hổ phách = bonus / điểm phải tin, xanh ngọc = giá trị đã kiểm khớp, đỏ = cảnh báo. */
 :root{
   --paper:#F4F6F9; --panel:#FFFFFF; --ink:#141C29; --muted:#56627A; --line:#D7DDE6; --code:#EBEFF5;
   --num:#2B57CF; --num-soft:#E1E8FB;
@@ -228,9 +228,22 @@ body{margin:0} img{max-width:100%} [hidden]{display:none!important}
 .btn.quiet{background:transparent;color:var(--num)}
 .btn:focus-visible{outline:2px solid var(--num);outline-offset:2px}
 .who td:first-child{font-weight:600;white-space:nowrap}
-.who tr.hl td{background:var(--bonus-soft)}
-.hero-stat .big{font-size:clamp(2.2rem,5.2vw,3.1rem)}
 pre .k{color:var(--num);font-weight:500}
+.who tr.hl td{background:var(--bonus-soft)}
+.verdict{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:28px !important}
+.verdict > div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-width:0}
+.verdict b{display:block;font-family:var(--f-display);font-size:1.05rem;font-weight:600}
+.verdict p{font-size:.9rem;color:var(--muted);margin-top:8px;line-height:1.55}
+.tag{display:inline-block;margin-top:6px;font-size:.8rem;font-weight:600;padding:2px 10px;border-radius:999px}
+.tag.good{background:var(--hit-soft);color:var(--hit)} .tag.warn{background:var(--bonus-soft);color:var(--bonus)}
+@media (max-width:760px){.verdict{grid-template-columns:minmax(0,1fr)}}
+details.more{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:0 16px}
+details.more + details.more{margin-top:10px}
+details.more summary{cursor:pointer;padding:12px 0;font-weight:600;font-size:.95rem;min-height:44px;display:flex;align-items:center}
+details.more summary:focus-visible{outline:2px solid var(--num);outline-offset:2px;border-radius:6px}
+details.more[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px}
+details.more > div{padding-bottom:16px}
+.hero-stat .big{font-size:clamp(2.2rem,5.2vw,3.1rem)}
 </style>
 </head>
 <body>
@@ -241,62 +254,38 @@ pre .k{color:var(--num);font-weight:500}
 <article>
 
 <header class="col flow">
-  <div class="eyebrow">Phần 2 · Smart contract · số ngẫu nhiên on-chain</div>
-  <h1>Ai chọn số trúng Megapot? Lần ngược một kỳ quay từ transaction tới từng quả bóng</h1>
+  <div class="eyebrow">Phần 2 · số ngẫu nhiên on-chain</div>
+  <h1>Megapot quay số thế nào, và có đáng tin không?</h1>
   <p class="byline">Megapot là xổ số chạy bằng smart contract trên mạng Base: mua vé bằng USDC, mỗi ngày quay một kỳ, tiền thưởng trả thẳng từ contract. Bài viết phân tích kỹ thuật, không phải lời khuyên chơi xổ số hay đầu tư.</p>
-  <p class="deck">Kỳ 133 của Megapot (ngày 4/8/2026) ra 10, 14, 25, 26, 27 và bonus 4. Không có ai bấm máy quay số. Hai transaction trên Base, cách nhau bốn giây, đã quyết định sáu con số đó. Vậy ai đã chọn chúng, có ai biết trước không, và mình có tự kiểm lại được không?</p>
-  <p>Ở <a href="/megapot-dem-nguoi-trung/">phần 1</a>, mình xem contract lưu vé và đếm người trúng ra sao. Phần này đi ngược lên một bước: con số trúng đến từ đâu. Mình mở từng transaction của kỳ 133, decode từng event, đọc mã nguồn của Pyth Entropy và Megapot, rồi tự tính lại kết quả chỉ từ dữ liệu công khai trên chain.</p>
-  <p class="small muted">Nếu bạn chỉ muốn biết có nên tin kết quả hay không, hãy đọc <a href="#q9">Câu 9</a>. Nếu bạn viết smart contract, phần đáng đọc nhất là Câu 4 đến Câu 7 và phòng kiểm chứng.</p>
-  <p class="byline">Dữ liệu lấy từ Basescan và Pyth Entropy Explorer. Mã nguồn lấy từ repo của Pyth và bản audit Code4rena (11/2025) của Megapot. Mọi con số trong bài mình đều tự tính lại bằng script ở <a href="#q7">Câu 7</a>.</p>
+  <p class="deck">Megapot không có máy quay số. Mỗi ngày sau 17:00 UTC, contract xin một số ngẫu nhiên từ dịch vụ Pyth Entropy, rồi tự đổi số đó ra 5 số và 1 bonus. Bài này giải thích cơ chế đó, xem nó minh bạch và an toàn tới đâu, và thử tự kiểm lại một kỳ thật.</p>
+  <p class="small muted">Đây là phần 2. <a href="/megapot-dem-nguoi-trung/">Phần 1</a> nói về cách contract lưu vé và đếm người trúng. Mình đọc mã nguồn của Pyth và bản audit Code4rena (11/2025) của Megapot, lấy dữ liệu từ Basescan, và tự tính lại mọi con số trong bài.</p>
 
-  <div class="hero-stat">
-    <div><div class="big hit">4 giây</div><div class="cap">từ lúc contract xin số ngẫu nhiên tới lúc có sáu quả bóng</div></div>
-    <div><div class="big">0,000045</div><div class="cap">ETH Megapot trả cho Pyth Entropy ở kỳ này</div></div>
-    <div><div class="big hit">5/5</div><div class="cap">phép kiểm ngược khớp với dữ liệu on-chain</div></div>
-  </div>
-
-  <div class="tldr">
-    <strong>Tóm tắt</strong>
-    <ul>
-      <li>Số ngẫu nhiên của mỗi kỳ là <code>keccak256</code> của hai nửa: một nửa do Pyth cam kết từ trước bằng một <strong>chuỗi hash</strong>, một nửa sinh ra on-chain đúng lúc Megapot gửi yêu cầu.</li>
-      <li>Pyth không đổi được nửa của mình sau khi đã cam kết, nhưng Pyth là bên <strong>biết kết quả sớm nhất</strong>. Với cách Megapot gọi Entropy, độ tin cậy dựa chủ yếu vào việc Pyth trung thực.</li>
-      <li>Mỗi kỳ Megapot trả một khoản phí nhỏ bằng ETH cho Pyth (kỳ 133 là 0,000045 ETH). Phí tăng theo lượng gas mà bước trả kết quả được phép dùng.</li>
-      <li>Contract đang chạy <strong>khác bản audit</strong> ở một chỗ: số thường và bonus giờ dùng hai seed riêng. Mình phát hiện ra điều này khi tính lại kết quả kỳ 133.</li>
-      <li>Rủi ro lớn nhất không nằm ở thuật toán mà ở quyền của owner Megapot: owner có thể thay cả contract cấp số ngẫu nhiên.</li>
-    </ul>
+  <div class="verdict">
+    <div><b>Minh bạch</b><span class="tag good">Cao</span><p>Mọi bước đều nằm trên chain và ai cũng tự tính lại được. Mình kiểm kỳ 133 (ngày 4/8/2026), kết quả khớp hoàn toàn.</p></div>
+    <div><b>An toàn trước người chơi</b><span class="tag good">Cao</span><p>Người chơi, người gọi quay số hay sequencer của Base đều không đoán trước hay chỉnh được kết quả, miễn là Pyth trung thực.</p></div>
+    <div><b>Vẫn phải tin</b><span class="tag warn">Hai bên</span><p>Pyth, bên biết kết quả sớm hơn mọi người vài giây và có thể không trả số. Owner Megapot, bên có quyền thay cả nguồn số ngẫu nhiên.</p></div>
   </div>
 </header>
 
 <section class="col flow">
-  <h2>Kỳ 133 trên chain</h2>
-  <p>Đây là các transaction liên quan tới kỳ 133, xếp theo thời gian (giờ UTC; 17:00 UTC là 0 giờ ngày hôm sau theo giờ Việt Nam). Ba transaction mua vé, trả số và trả thưởng là ví dụ mà chính Megapot đăng trong bài <a href="https://megapot.io/blog/celebrated-winner-colin" target="_blank" rel="noopener">giới thiệu một người thắng giải</a>. Hai transaction còn lại là phần mình tìm thêm.</p>
+  <h2 id="vi-sao">Vì sao contract không tự random được?</h2>
+  <p>Mọi node chạy lại cùng một transaction phải ra cùng một kết quả, nên trong EVM không có hàm random thật. Những thứ trông có vẻ ngẫu nhiên như thời gian của block (<code>block.timestamp</code>) hay <code>block.prevrandao</code> đều là dữ liệu của block.</p>
+  <p>Trên Base, block do <strong>một sequencer duy nhất</strong> (do Coinbase vận hành) sắp xếp. Sequencer biết trước dữ liệu block và chọn được transaction nào vào block nào. Nếu số trúng lấy thẳng từ dữ liệu block, sequencer sẽ biết trước kết quả. Vì vậy Megapot cần một nguồn bên ngoài: Pyth Entropy.</p>
+</section>
+
+<section class="col flow">
+  <h2 id="co-che">Cơ chế: hai nửa bí mật, trộn lại thành một</h2>
+  <p>Pyth Entropy dùng cách <strong>cam kết rồi mới công bố</strong> (commit–reveal). Bên giữ bí mật phải công bố trước dấu vân tay (giá trị hash) của con số. Tới lúc cần, họ công bố con số, và ai cũng tự băm lại để xem có đúng con số đã cam kết không. Một kỳ quay của Megapot đi qua bốn bước:</p>
   <ol class="flowsteps">
-    <li class="buy"><div class="when">04/08 01:01</div><div class="what">Người chơi nhận thưởng kỳ trước và mua lại 10 vé cho kỳ 133 trong cùng một lệnh. <a href="https://basescan.org/tx/0xfd66f46454dfd55accc33d24665e30a216f9d597828130d97487ddb80b5981d1#eventlog" target="_blank" rel="noopener"><code>0xfd66…81d1</code></a></div></li>
-    <li class="claim"><div class="when">04/08 16:54:51</div><div class="what">Pyth trả số ngẫu nhiên cho một ứng dụng khác (yêu cầu số 556740). Giá trị Pyth công bố ở đây sẽ dùng để kiểm Pyth ở kỳ 133. <a href="https://basescan.org/tx/0xdd8a163e5227f1ad88f8fe38522a142fc96f04795a12b8c938cdefaab96af58b#eventlog" target="_blank" rel="noopener"><code>0xdd8a…f58b</code></a></div></li>
-    <li class="draw"><div class="when">04/08 17:00:00</div><div class="what">Hết giờ bán vé kỳ 133 (<code>drawingTime</code>). Từ giây này ai cũng gọi được <code>runJackpot()</code>.</div></li>
-    <li class="draw"><div class="when">04/08 17:00:17</div><div class="what"><b>Transaction xin số.</b> Megapot khóa kỳ, gửi yêu cầu số 556741 tới Pyth Entropy và trả phí. Block 49536735. <a href="https://basescan.org/tx/0xa2c5b45b0bd8d6692633824e50f89b0b9f881c072c66eecb77cdaf40147cd26e#eventlog" target="_blank" rel="noopener"><code>0xa2c5…d26e</code></a></div></li>
-    <li class="settle"><div class="when">04/08 17:00:21</div><div class="what"><b>Transaction trả số.</b> Pyth công bố nửa bí mật của mình, Entropy tính số ngẫu nhiên, Megapot đổi ra sáu quả bóng, đếm người trúng và mở kỳ 134, tất cả trong một transaction. Block 49536737. <a href="https://basescan.org/tx/0x906ed1b8cbee4ee12f253aef8cf407dcbfd3f4471d067837751a909d869ef4ab#eventlog" target="_blank" rel="noopener"><code>0x906e…f4ab</code></a></div></li>
-    <li class="claim"><div class="when">05/08 03:28</div><div class="what">Người chơi nhận 5.000 USDC Guaranteed Prize. Tiền đi từ một ví thường <code>0xF6a9…fd56</code>, không phải từ contract xổ số. <a href="https://basescan.org/tx/0x08b8673539db3db1e608939f8a26c72436a22924aa7cdca69d568f5974c9bad3#eventlog" target="_blank" rel="noopener"><code>0x08b8…bad3</code></a></div></li>
+    <li class="buy"><div class="when">Bước 1</div><div class="what">Hết giờ bán vé (17:00 UTC). Bất kỳ ai cũng gọi được hàm <code>runJackpot()</code>. Kỳ quay bị khóa: từ đây không ai mua thêm vé được.</div></li>
+    <li class="draw"><div class="when">Bước 2</div><div class="what">Megapot gửi yêu cầu kèm phí tới Pyth Entropy. Entropy tạo <b>nửa thứ nhất</b> từ dữ liệu block và ghi công khai lên chain.</div></li>
+    <li class="draw"><div class="when">Bước 3</div><div class="what">Vài giây sau, Pyth gửi <b>nửa thứ hai</b>, là con số bí mật Pyth đã cam kết từ trước. Contract kiểm nửa này đúng với cam kết, rồi băm hai nửa ra một số ngẫu nhiên 256 bit.</div></li>
+    <li class="settle"><div class="when">Bước 4</div><div class="what">Trong cùng transaction đó, Megapot đổi số 256 bit ra 5 số và bonus, đếm người trúng, chia giải và mở kỳ mới.</div></li>
   </ol>
-  <p class="small muted">Cách tìm transaction xin số: event trả số có số thứ tự yêu cầu (556741). Tra số đó trên <a href="https://entropy-explorer.pyth.network/?chain=base&amp;search=556741" target="_blank" rel="noopener">Pyth Entropy Explorer</a> sẽ ra cả transaction xin số lẫn transaction trả số.</p>
-</section>
+  <p>Ý tưởng là: lúc Megapot gửi yêu cầu, chưa ai ngoài Pyth biết nửa thứ hai. Lúc Pyth cam kết, Pyth chưa biết nửa thứ nhất. Không bên nào một mình chọn được kết quả.</p>
 
-<section class="col flow">
-  <h2 id="q1">Câu 1: vì sao contract không tự random được?</h2>
-  <p>Mọi node chạy lại cùng một transaction phải ra cùng một kết quả, nếu không chain sẽ không thống nhất được trạng thái. Vì vậy trong EVM không có hàm random thật. Những thứ trông có vẻ ngẫu nhiên như <code>block.timestamp</code> hay <code>block.prevrandao</code> đều là dữ liệu của block.</p>
-  <p>Trên Base, block do <strong>một sequencer duy nhất</strong> (do Coinbase vận hành) sắp xếp. Sequencer quyết định timestamp và thứ tự transaction. <code>prevrandao</code> trên Base lấy từ block Ethereum mà sequencer đang bám theo, nên đã công khai từ trước. Nếu Megapot lấy số trúng từ dữ liệu block, sequencer biết trước kết quả, và có thể chọn đưa transaction quay số vào block nào cho có lợi.</p>
-  <p>Cách giải quen thuộc là <strong>commit–reveal</strong> (cam kết rồi mới công bố): một bên giữ bí mật một con số, nhưng phải công bố trước dấu vân tay của nó (giá trị hash). Khi tới lúc, bên đó công bố con số, ai cũng tự hash lại để kiểm xem có đúng con số đã cam kết hay không. Megapot dùng một dịch vụ commit–reveal có sẵn là <strong>Pyth Entropy</strong>.</p>
-</section>
-
-<section class="col flow">
-  <h2 id="q2">Câu 2: Pyth Entropy cam kết trước bằng cách nào?</h2>
-  <p>Pyth Entropy có hai vai: <strong>provider</strong> (bên cung cấp nửa bí mật, ở đây là Pyth, chạy bằng phần mềm tên Fortuna) và <strong>người yêu cầu</strong> (contract cần số ngẫu nhiên, ở đây là Megapot). Nếu mỗi yêu cầu provider phải gửi một transaction cam kết riêng thì tốn kém và chậm. Pyth dùng một mẹo: cam kết một lần cho hàng triệu yêu cầu bằng một <strong>chuỗi hash</strong>.</p>
-  <ol>
-    <li>Provider chọn một số bí mật gốc, băm nó liên tục hàng triệu lần. Mỗi lần băm cho ra một mắt xích: <code>x[i-1] = keccak256(x[i])</code>.</li>
-    <li>Provider chỉ công bố mắt xích cuối cùng của quá trình băm, gọi là <code>x[0]</code>, lên contract Entropy khi đăng ký. Đó là lời cam kết.</li>
-    <li>Yêu cầu số thứ tự 1 dùng <code>x[1]</code>, yêu cầu số 2 dùng <code>x[2]</code>, cứ thế. Mỗi lần công bố, ai cũng kiểm được: <code>keccak256(x[i])</code> phải bằng mắt xích đã công bố ngay trước đó.</li>
-  </ol>
-  <p>Vì <code>keccak256</code> không đảo ngược được, biết <code>x[i-1]</code> không giúp đoán ra <code>x[i]</code>. Và vì mắt xích trước đã nằm trên chain, provider cũng không thể đổi <code>x[i]</code> thành một số khác.</p>
+  <h3>Vì sao Pyth không đổi được nửa của mình?</h3>
+  <p>Pyth không cam kết riêng cho từng yêu cầu, vì như thế quá tốn. Thay vào đó, Pyth chọn một số bí mật gốc rồi băm nó liên tục hàng triệu lần, tạo thành một <strong>chuỗi hash</strong>. Pyth chỉ công bố mắt xích cuối của chuỗi. Mỗi yêu cầu sau đó dùng mắt xích kế tiếp theo chiều ngược lại, và ai cũng kiểm được: băm mắt xích mới phải ra đúng mắt xích đã công bố trước đó.</p>
 </section>
 
 <figure class="wide fig">
@@ -304,7 +293,7 @@ pre .k{color:var(--num);font-weight:500}
     <svg viewBox="0 0 960 250" style="min-width:680px" role="img" aria-labelledby="chainTitle chainDesc">
       <title id="chainTitle">Chuỗi hash của provider Pyth, với giá trị thật của kỳ 133</title>
       <desc id="chainDesc">Mắt xích 556741 có giá trị 0xe1fd...b645. Băm nó bằng keccak256 ra 0x2c2d...c1ca, đúng giá trị Pyth đã công bố lúc 16:54:51 cho yêu cầu 556740. Chuỗi tiếp tục về x[0] là cam kết lúc đăng ký.</desc>
-      <defs><marker id="arL" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--num)"/></marker></defs>
+      <defs><marker id="arL" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
       <text x="20" y="28" class="md mut">Provider băm từ phải sang trái để tạo chuỗi, rồi công bố từ trái sang phải, mỗi yêu cầu một mắt xích.</text>
       <!-- boxes -->
       <rect x="20" y="70" width="150" height="74" rx="10" fill="var(--panel)" stroke="var(--line)" stroke-width="1.5"/>
@@ -346,40 +335,75 @@ pre .k{color:var(--num);font-weight:500}
 </figure>
 
 <section class="col flow">
-  <p>Nhưng nếu chỉ có nửa của provider, provider tự biết trước mọi kết quả. Vì vậy Entropy trộn thêm nửa thứ hai do người yêu cầu đóng góp, rồi băm cả hai:</p>
-  <div class="codeblock"><span class="label-file">Entropy.sol (Pyth), rút gọn</span>
-<pre><code><span class="c">// lúc yêu cầu: lưu cam kết gộp của cả hai bên</span>
-req.commitment = keccak256(bytes.concat(
-    keccak256(userContribution),            <span class="c">// dấu vân tay nửa người dùng</span>
-    providerInfo.currentCommitment          <span class="c">// mắt xích provider công bố gần nhất</span>
-));
+  <p>Hàm băm <code>keccak256</code> không đảo ngược được, nên biết mắt xích cũ không giúp đoán mắt xích mới. Và vì mắt xích cũ đã nằm trên chain, Pyth không thể đưa ra một số khác mà vẫn khớp.</p>
 
-<span class="c">// lúc trả số: kiểm cả hai nửa rồi trộn</span>
-randomNumber = keccak256(abi.encodePacked(
-    userContribution, providerContribution, bytes32(0)
-));</code></pre></div>
-  <p>Ý tưởng gốc là: chỉ cần <strong>một trong hai bên</strong> trung thực thì kết quả là ngẫu nhiên. Provider không biết nửa người dùng khi cam kết, người dùng không biết nửa provider khi gửi yêu cầu. Câu hỏi tiếp theo là Megapot đóng góp nửa của mình thế nào.</p>
-</section>
-
-<section class="col flow">
-  <h2 id="q3">Câu 3: nửa "người dùng" của Megapot lấy từ đâu?</h2>
-  <p>Megapot gọi phiên bản <code>requestV2(provider, gasLimit)</code>, tức là <strong>không gửi kèm số bí mật nào</strong>. Khi đó Entropy tự tạo nửa người dùng bằng hàm sau:</p>
+  <h3>Nửa thứ nhất của Megapot có gì?</h3>
+  <p>Theo thiết kế gốc, bên xin số tự giữ một số bí mật của mình. Megapot thì không gửi số nào, nên Entropy tự tạo nửa thứ nhất bằng hàm này:</p>
   <div class="codeblock"><span class="label-file">Entropy.sol (Pyth)</span>
-<pre><code><span class="k">function</span> random() internal returns (bytes32) {
-    _state.seed = keccak256(abi.encodePacked(
-        block.timestamp,     <span class="c">// sequencer quyết định</span>
-        block.prevrandao,    <span class="c">// đã công khai từ block Ethereum</span>
-        msg.sender,          <span class="c">// contract của Megapot, cố định</span>
-        _state.seed          <span class="c">// đổi sau mỗi yêu cầu của mọi ứng dụng trên Base</span>
-    ));
-    return _state.seed;
-}</code></pre></div>
-  <p>Ở kỳ 133, giá trị này là <code>0x223b9069…d8d5</code> và được ghi ngay trong event của transaction xin số. Nó không bí mật: ai chạy node đều tính được, sequencer còn biết trước. Điều đó không sao, vì phần bí mật nằm ở nửa của Pyth. Nhưng nó có một hệ quả quan trọng: lời hứa "chỉ cần một bên trung thực" giờ thành <strong>"Pyth phải trung thực"</strong>. Tài liệu của Pyth cũng nói rõ: dùng số sinh on-chain thay cho số bí mật của người dùng thì phải tin rằng provider không thông đồng với người sắp xếp block. Câu 9 sẽ quay lại chuyện này.</p>
+<pre><code>_state.seed = keccak256(abi.encodePacked(
+    block.timestamp,     <span class="c">// sequencer quyết định</span>
+    block.prevrandao,    <span class="c">// đã công khai từ block Ethereum</span>
+    msg.sender,          <span class="c">// contract của Megapot, cố định</span>
+    _state.seed          <span class="c">// đổi sau mỗi yêu cầu của mọi ứng dụng trên Base</span>
+));</code></pre></div>
+  <p>Nửa này không bí mật: ai chạy node đều tính được ngay khi transaction vào block, sequencer còn biết sớm hơn. Như vậy toàn bộ phần bí mật nằm ở Pyth. Lời hứa "chỉ cần một bên trung thực" trở thành <strong>"Pyth phải trung thực"</strong>. Tài liệu của Pyth cũng nói rõ điều kiện này khi không dùng số bí mật của người xin.</p>
+
+  <h3>Từ một số 256 bit ra sáu quả bóng</h3>
+  <p>Megapot xếp các số 1 đến 30 thành một hàng rồi xáo bằng thuật toán <strong>Fisher–Yates</strong>: đi từ cuối hàng về đầu, mỗi bước đổi chỗ với một vị trí ngẫu nhiên phía trước, rồi lấy 5 số đầu hàng. Mỗi bước lấy một số ngẫu nhiên nhỏ bằng cách băm số 256 bit kèm một bộ đếm. Contract bỏ những giá trị làm phép chia lấy dư bị lệch (rejection sampling), nên mọi số có xác suất như nhau. Bonus 1 đến 10 làm tương tự.</p>
 </section>
 
 <section class="col flow">
-  <h2 id="q4">Câu 4: decode transaction xin số</h2>
-  <p>Transaction <code>0xa2c5…d26e</code> không gọi thẳng Megapot. Nó là một lệnh <code>handleOps</code> gửi tới EntryPoint của ERC-4337, chuẩn cho phép ví là một contract (smart account) và cho bên thứ ba (paymaster) trả gas hộ. Bên trong, smart account <code>0x6d93…034C</code> gọi <code>runJackpot()</code> của Megapot. Mình đoán đây là bot của Megapot, vì nó chạy đúng sau giờ quay mỗi ngày; Basescan không gắn nhãn cho ví này.</p>
+  <h2 id="minh-bach">Minh bạch tới đâu? Mình thử kiểm lại kỳ 133</h2>
+  <p>"Minh bạch" ở đây nghĩa là: không cần tin lời Megapot hay Pyth, chỉ cần dữ liệu công khai và một hàm <code>keccak256</code> là tính lại được kết quả. Mình chọn kỳ 133 vì chính Megapot đã đăng transaction của kỳ này trong <a href="https://megapot.io/blog/celebrated-winner-colin" target="_blank" rel="noopener">bài giới thiệu một người thắng giải</a>. Kỳ đó ra 10, 14, 25, 26, 27 và bonus 4.</p>
+  <ol class="flowsteps">
+    <li class="claim"><div class="when">16:54:51</div><div class="what">Pyth trả số cho một ứng dụng khác và công bố mắt xích <code>0x2c2d…c1ca</code>. <a href="https://basescan.org/tx/0xdd8a163e5227f1ad88f8fe38522a142fc96f04795a12b8c938cdefaab96af58b#eventlog" target="_blank" rel="noopener">Xem transaction</a></div></li>
+    <li class="draw"><div class="when">17:00:17</div><div class="what">Megapot xin số (yêu cầu số 556741). Nửa thứ nhất là <code>0x223b…d8d5</code>. <a href="https://basescan.org/tx/0xa2c5b45b0bd8d6692633824e50f89b0b9f881c072c66eecb77cdaf40147cd26e#eventlog" target="_blank" rel="noopener">Xem transaction</a></div></li>
+    <li class="settle"><div class="when">17:00:21</div><div class="what">Pyth gửi nửa thứ hai <code>0xe1fd…b645</code>. Cùng transaction đó ra số ngẫu nhiên <code>0x4f36…ee8e</code> và sáu quả bóng. <a href="https://basescan.org/tx/0x906ed1b8cbee4ee12f253aef8cf407dcbfd3f4471d067837751a909d869ef4ab#eventlog" target="_blank" rel="noopener">Xem transaction</a></div></li>
+  </ol>
+  <p>Từ ba transaction này, mình kiểm được năm điều:</p>
+  <ol class="checks">
+    <li><span class="mark ok">✓</span><div><b>Pyth không đổi số.</b> Băm nửa thứ hai <code>0xe1fd…b645</code> ra đúng <code>0x2c2d…c1ca</code>, mắt xích Pyth đã công bố từ 5 phút trước.</div></li>
+    <li><span class="mark ok">✓</span><div><b>Cam kết khớp.</b> Hai nửa khớp với cam kết mà Entropy ghi lại lúc Megapot xin số.</div></li>
+    <li><span class="mark ok">✓</span><div><b>Số ngẫu nhiên đúng.</b> <code>keccak256</code> của hai nửa ra đúng <code>0x4f36…ee8e</code>.</div></li>
+    <li><span class="mark ok">✓</span><div><b>Sáu quả bóng đúng.</b> Xáo Fisher–Yates từ số đó ra đúng 25, 27, 14, 26, 10 và bonus 4, cả thứ tự.</div></li>
+    <li><span class="mark ok">✓</span><div><b>Tiền thưởng đúng.</b> Số vé trúng mỗi hạng nhân với tiền mỗi hạng, cộng lại ra đúng 1.743,95 USDC mà contract ghi đã trả cho người chơi.</div></li>
+  </ol>
+
+  <h3>Một phát hiện phụ: contract đang chạy khác bản audit</h3>
+  <p>Lần đầu tính, mình dùng đúng code trong bản audit: cả 5 số thường và bonus dùng chung một seed. Kết quả ra 9, 15, 7, 12, 28 và bonus 1, sai hoàn toàn. Thử lại với mỗi bộ số một seed riêng (băm số ngẫu nhiên kèm số thứ tự của bộ) thì ra đúng. Xác suất trùng khớp do may mắn khoảng 1 trên 171 triệu.</p>
+  <div class="balls" aria-label="So sánh kết quả">
+    <span class="small muted" style="flex-basis:100%">Bản audit, chung seed:</span>
+    <span class="ball ghost">9</span><span class="ball ghost">15</span><span class="ball ghost">7</span><span class="ball ghost">12</span><span class="ball ghost">28</span><span class="ball ghost">1</span>
+    <span class="small muted" style="flex-basis:100%;margin-top:6px">Bản đang chạy, mỗi bộ một seed (khớp on-chain):</span>
+    <span class="ball">25</span><span class="ball">27</span><span class="ball">14</span><span class="ball">26</span><span class="ball">10</span><span class="ball bz">4</span>
+  </div>
+  <p>Đây là tin tốt. Code4rena từng báo lỗi M-05: dùng chung seed làm số thường và bonus không độc lập. Mô phỏng bản audit cho thấy bonus trùng một số thường ở khoảng 18,4% số kỳ, thay vì 16,7%. Kỳ 133 cho thấy Megapot đã sửa lỗi này. Kết luận dựa trên một kỳ; bạn có thể tự kiểm thêm kỳ khác bằng công cụ bên dưới.</p>
+
+  <div class="lab" id="lab">
+    <h3>Tự kiểm trong trình duyệt</h3>
+    <p class="small muted">Điền sẵn giá trị kỳ 133. Muốn kiểm kỳ khác, mở transaction trả số của kỳ đó trên Basescan, chép bốn giá trị trong event <code>RevealedWithCallback</code> vào đây. Mọi phép tính chạy ngay trong trình duyệt của bạn.</p>
+    <form id="vf" class="controls" style="margin-top:14px" novalidate>
+      <div class="field"><label for="vUser">userContribution (nửa người dùng)</label><input type="text" id="vUser" spellcheck="false" autocomplete="off" value="0x223b90698bc57d34e84f55c059f3bb7a4054dcd82220ae661bdebd1d60fdd8d5"></div>
+      <div class="field"><label for="vProv">providerContribution (nửa của Pyth)</label><input type="text" id="vProv" spellcheck="false" autocomplete="off" value="0xe1fdeec9d5d8f924f96fcd3c3fbf06cd85e762d0013746d0a6153c9720f0b645"></div>
+      <div class="field"><label for="vCommit">commitment (trong request)</label><input type="text" id="vCommit" spellcheck="false" autocomplete="off" value="0x91bf6648379d18ed6bb430dcf117246dd8e7d5d31f6bb51b7f385b217ee7c7a3"></div>
+      <div class="field"><label for="vRand">randomNumber (trong event)</label><input type="text" id="vRand" spellcheck="false" autocomplete="off" value="0x4f367621fe592029499197ac3dcdb50ca27d20fa19b199d969da50b81956ee8e"></div>
+      <div class="field half"><label for="vHashes">numHashes</label><input type="text" id="vHashes" inputmode="numeric" value="1"></div>
+      <div class="field half"><label for="vMax">số thường tối đa</label><input type="text" id="vMax" inputmode="numeric" value="30"></div>
+      <div class="field half"><label for="vBonus">bonus tối đa</label><input type="text" id="vBonus" inputmode="numeric" value="10"></div>
+      <div class="field half" style="justify-content:flex-end;flex-direction:row;gap:8px">
+        <button class="btn" type="submit">Kiểm tra</button>
+      </div>
+    </form>
+    <p class="err" id="vErr" aria-live="polite"></p>
+    <div id="vOut" aria-live="polite" style="margin-top:14px"></div>
+  </div>
+
+
+
+  <details class="more">
+    <summary>Chi tiết kỹ thuật: decode transaction xin số</summary>
+    <div class="flow">
+    <p>Transaction này là một lệnh <code>handleOps</code> theo chuẩn ERC-4337: ví là một contract (smart account) và gas do một bên thứ ba (paymaster) trả hộ. Bên trong, smart account <code>0x6d93…034C</code> gọi <code>runJackpot()</code>. Mình đoán đây là bot của Megapot; Basescan không gắn nhãn ví này.</p>
   <div class="txcard"><dl>
     <dt>Block, thời gian</dt><dd>49536735, 04/08/2026 17:00:17 UTC</dd>
     <dt>Gửi qua</dt><dd>EntryPoint 0.8.0 0x4337084D…5Ff108, hàm handleOps (0x765e827f)</dd>
@@ -398,13 +422,12 @@ randomNumber = keccak256(abi.encodePacked(
       <tr><td class="mono">674</td><td>EntryPoint</td><td><code>UserOperationEvent</code></td><td>thành công; paymaster <code>0x0000…8ADd</code> trả gas</td></tr>
     </tbody>
   </table></div>
-  <p>Hai giá trị cần giữ lại cho bước kiểm: nửa người dùng <code>0x223b…d8d5</code> và cam kết gộp <code>0x91bf…c7a3</code>. <code>numHashes = 1</code> nghĩa là mắt xích của yêu cầu này nằm ngay sau mắt xích provider công bố gần nhất. Mắt xích đó là <code>0x2c2d…c1ca</code>, công bố lúc 16:54:51.</p>
-  <p>Từ giây này, kết quả kỳ 133 đã được định sẵn: nửa người dùng đã nằm trên chain, nửa của Pyth đã bị khóa bởi chuỗi hash. Không ai đổi được nữa. Chỉ có điều chưa ai ngoài Pyth biết nó là gì.</p>
-</section>
 
-<section class="col flow">
-  <h2 id="q5">Câu 5: decode transaction trả số</h2>
-  <p>Bốn giây sau, ví <code>0x5Fa9…1eC0</code> gửi transaction <code>0x906e…f4ab</code> thẳng tới contract Entropy. Đây là ví của dịch vụ Fortuna bên Pyth (Pyth chạy nhiều ví như vậy; yêu cầu 556740 được trả bằng một ví khác). Bốn byte đầu của input là <code>0x3d30bc0e</code>, đúng bằng bốn byte đầu của <code>keccak256("revealWithCallback(address,uint64,bytes32,bytes32)")</code>. Bốn tham số:</p>
+    </div>
+  </details>
+  <details class="more">
+    <summary>Chi tiết kỹ thuật: decode transaction trả số</summary>
+    <div class="flow">
   <div class="txcard"><dl>
     <dt>provider</dt><dd>0x52DeaA1c84233F7bb8C8A45baeDE41091c616506</dd>
     <dt>sequenceNumber</dt><dd>556741</dd>
@@ -433,67 +456,14 @@ randomNumber = keccak256(abi.encodePacked(
       <tr><td class="mono">392</td><td>Entropy</td><td><code>Revealed</code></td><td><code>callbackFailed = false</code>, Megapot dùng hết 2.387.847 gas</td></tr>
     </tbody>
   </table></div>
-  <p>Có một chi tiết dễ bỏ qua: nếu lời gọi vào Megapot thất bại (ví dụ hết gas), Entropy không revert cả transaction mà ghi trạng thái "callback lỗi". Sau đó ai cũng gọi lại được, với <strong>đúng hai nửa cũ</strong>, nên kết quả không đổi. Một kỳ quay có thể bị chậm, nhưng không thể "quay lại cho tới khi đẹp" bằng đường này.</p>
-</section>
 
-<section class="col flow">
-  <h2 id="q6">Câu 6: từ 32 byte ra sáu quả bóng thế nào?</h2>
-  <p>randomNumber là một số 256 bit. Megapot cần 5 số khác nhau trong 1–30 và 1 bonus trong 1–10. Contract <code>ScaledEntropyProvider</code> dùng <strong>Fisher–Yates</strong>: xếp các số thành một hàng, đi từ cuối hàng về đầu, mỗi bước đổi chỗ phần tử hiện tại với một phần tử ngẫu nhiên phía trước nó, rồi lấy 5 phần tử đầu hàng.</p>
-  <p>Mỗi bước cần một số ngẫu nhiên nhỏ, lấy bằng <code>keccak256(abi.encode(seed, nonce)) % (i + 1)</code>. Phép chia lấy dư có một lỗi nhỏ: 2²⁵⁶ không chia hết cho <code>i + 1</code>, nên vài số dư xuất hiện nhiều hơn một chút. Contract loại lỗi đó bằng cách <strong>bỏ những giá trị rơi vào phần dư cuối dải</strong> và băm lại với nonce kế tiếp (rejection sampling). Xác suất phải băm lại cực nhỏ; ở kỳ 133 không lần nào phải bỏ.</p>
-  <div class="codeblock"><span class="label-file">FisherYatesWithRejection.sol (bản audit), rút gọn</span>
-<pre><code>pool = [min .. max]; nonce = 0;
-<span class="k">for</span> (i = size - 1; i &gt; 0; i--) {
-    <span class="k">do</span> { rand = uint256(keccak256(abi.encode(seed, nonce))); nonce++; }
-    <span class="k">while</span> (rand &gt;= (MAX_UINT / (i + 1)) * (i + 1));   <span class="c">// bỏ phần dư</span>
-    swap(pool[i], pool[rand % (i + 1)]);
-}
-<span class="k">return</span> pool[0 : count];</code></pre></div>
-
-  <h3>Chỗ mình tính sai, và vì sao nó đáng giá</h3>
-  <p>Lần đầu, mình chạy đúng code trong bản audit: cả số thường lẫn bonus dùng chung <code>seed = randomNumber</code>. Kết quả ra <strong>9, 15, 7, 12, 28 và bonus 1</strong>, lệch hoàn toàn so với on-chain. Hai nửa và randomNumber đã khớp, nên lỗi chỉ có thể nằm ở bước đổi ra quả bóng. Basescan cho biết contract đang chạy đã verify mã nguồn, nhưng mình không đọc được nội dung, chỉ thấy danh sách file, và danh sách đó khác bản audit.</p>
-  <p>Mình thử vài cách tạo seed hợp lý. Cách khớp là: <strong>bộ số thứ i dùng seed riêng</strong> <code>keccak256(abi.encode(randomNumber, i))</code>. Bộ 0 (số thường) ra đúng <code>[25, 27, 14, 26, 10]</code>, đúng cả thứ tự. Bộ 1 (bonus) ra đúng <code>4</code>. Nếu chỉ trùng do may mắn, xác suất khớp cả thứ tự lẫn bonus là 1 trên 30·29·28·27·26·10, khoảng <strong>1 trên 171 triệu</strong>.</p>
-  <div class="balls" aria-label="So sánh kết quả">
-    <span class="small muted" style="flex-basis:100%">Bản audit, chung seed:</span>
-    <span class="ball ghost">9</span><span class="ball ghost">15</span><span class="ball ghost">7</span><span class="ball ghost">12</span><span class="ball ghost">28</span><span class="ball ghost">1</span>
-    <span class="small muted" style="flex-basis:100%;margin-top:6px">Bản đang chạy, seed riêng mỗi bộ (khớp on-chain):</span>
-    <span class="ball">25</span><span class="ball">27</span><span class="ball">14</span><span class="ball">26</span><span class="ball">10</span><span class="ball bz">4</span>
-  </div>
-  <div class="note"><b>Vì sao chuyện này quan trọng?</b> Báo cáo Code4rena có lỗi <strong>M-05</strong>: số thường và bonus dùng chung seed nên không độc lập. Trước đây mình mô phỏng bản audit và thấy bonus trùng một số thường khoảng 18,4% số kỳ, so với 16,7% nếu độc lập. Kỳ 133 cho thấy contract đang chạy đã tách seed, tức là lỗi này đã được sửa. Kết luận này dựa trên một kỳ; mình sẽ kiểm thêm các kỳ khác bằng phòng kiểm chứng bên dưới.</div>
-  <p>Cuối cùng, Jackpot đóng gói vé trúng thành một bitmap giống vé của người chơi ở phần 1: bit <i>n</i> bật nghĩa là có số <i>n</i>, còn bonus <i>b</i> nằm ở bit <code>30 + b</code>.</p>
-<pre><code>2^10 + 2^14 + 2^25 + 2^26 + 2^27 + 2^(30+4) = <span class="h">17414767616</span>   <span class="c">// đúng giá trị trong JackpotSettled</span></code></pre>
-</section>
-
-<section class="col flow">
-  <h2 id="q7">Câu 7: tự kiểm ngược cả kỳ 133</h2>
-  <p>Gom lại, chỉ với các giá trị công khai ở hai transaction, mình kiểm được năm điều. Không cần tin Megapot, Pyth hay Basescan: chỉ cần một hàm <code>keccak256</code>.</p>
-  <ol class="checks">
-    <li><span class="mark ok">✓</span><div><b>Chuỗi hash.</b> <code>keccak256(0xe1fd…b645)</code> ra <code>0x2c2d…c1ca</code>, đúng mắt xích Pyth đã công bố lúc 16:54:51. Pyth không đổi nửa của mình.</div></li>
-    <li><span class="mark ok">✓</span><div><b>Cam kết.</b> <code>keccak256(keccak256(user) ‖ keccak256(provider))</code> ra <code>0x91bf…c7a3</code>, đúng cam kết ghi lúc xin số.</div></li>
-    <li><span class="mark ok">✓</span><div><b>Số ngẫu nhiên.</b> <code>keccak256(user ‖ provider ‖ 0x00…00)</code> ra <code>0x4f36…ee8e</code>, đúng randomNumber trong event.</div></li>
-    <li><span class="mark ok">✓</span><div><b>Sáu quả bóng.</b> Fisher–Yates với seed riêng mỗi bộ ra <code>[25, 27, 14, 26, 10]</code> và <code>4</code>; bitmap ra <code>17414767616</code>.</div></li>
-    <li><span class="mark ok">✓</span><div><b>Tiền thưởng.</b> Nhân số vé trúng mỗi hạng với tiền mỗi hạng rồi cộng lại ra đúng 1.743,946151 USDC trong <code>JackpotSettled</code>.</div></li>
-  </ol>
-
-  <div class="lab" id="lab">
-    <h3>Phòng kiểm chứng</h3>
-    <p class="small muted">Điền sẵn giá trị kỳ 133. Muốn kiểm kỳ khác, mở transaction trả số của kỳ đó trên Basescan, chép bốn giá trị trong event <code>RevealedWithCallback</code> vào đây. Mọi phép tính chạy ngay trong trình duyệt của bạn.</p>
-    <form id="vf" class="controls" style="margin-top:14px" novalidate>
-      <div class="field"><label for="vUser">userContribution (nửa người dùng)</label><input type="text" id="vUser" spellcheck="false" autocomplete="off" value="0x223b90698bc57d34e84f55c059f3bb7a4054dcd82220ae661bdebd1d60fdd8d5"></div>
-      <div class="field"><label for="vProv">providerContribution (nửa của Pyth)</label><input type="text" id="vProv" spellcheck="false" autocomplete="off" value="0xe1fdeec9d5d8f924f96fcd3c3fbf06cd85e762d0013746d0a6153c9720f0b645"></div>
-      <div class="field"><label for="vCommit">commitment (trong request)</label><input type="text" id="vCommit" spellcheck="false" autocomplete="off" value="0x91bf6648379d18ed6bb430dcf117246dd8e7d5d31f6bb51b7f385b217ee7c7a3"></div>
-      <div class="field"><label for="vRand">randomNumber (trong event)</label><input type="text" id="vRand" spellcheck="false" autocomplete="off" value="0x4f367621fe592029499197ac3dcdb50ca27d20fa19b199d969da50b81956ee8e"></div>
-      <div class="field half"><label for="vHashes">numHashes</label><input type="text" id="vHashes" inputmode="numeric" value="1"></div>
-      <div class="field half"><label for="vMax">số thường tối đa</label><input type="text" id="vMax" inputmode="numeric" value="30"></div>
-      <div class="field half"><label for="vBonus">bonus tối đa</label><input type="text" id="vBonus" inputmode="numeric" value="10"></div>
-      <div class="field half" style="justify-content:flex-end;flex-direction:row;gap:8px">
-        <button class="btn" type="submit">Kiểm tra</button>
-      </div>
-    </form>
-    <p class="err" id="vErr" aria-live="polite"></p>
-    <div id="vOut" aria-live="polite" style="margin-top:14px"></div>
-  </div>
-
-  <p>Bản Python của cùng các phép kiểm, chạy được với <code>pip install pycryptodome</code>:</p>
+    <p>Nếu lời gọi vào Megapot thất bại (ví dụ hết gas), Entropy không hủy cả transaction mà ghi trạng thái "callback lỗi". Sau đó ai cũng gọi lại được, với đúng hai nửa cũ, nên kết quả không đổi.</p>
+    </div>
+  </details>
+  <details class="more">
+    <summary>Script Python để tự chạy</summary>
+    <div class="flow">
+    <p>Cần <code>pip install pycryptodome</code>.</p>
   <div class="codeblock"><span class="label-file">verify_draw_133.py</span>
 <pre><code>from Crypto.Hash import keccak
 def k(b):
@@ -519,25 +489,14 @@ def draw(lo, hi, count, seed):
 
 seed = lambda i: k(rnd + i.to_bytes(32, "big"))   <span class="c"># keccak256(abi.encode(randomNumber, i))</span>
 print(draw(1, 30, 5, seed(0)), draw(1, 10, 1, seed(1)))   <span class="c"># [25, 27, 14, 26, 10] [4]</span></code></pre></div>
-  <p class="small muted">Trong code gốc, <code>nonce</code> tăng ở cả nhánh bỏ lẫn sau mỗi lần đổi chỗ. Viết gộp như trên cho ra cùng dãy nonce.</p>
+
+    </div>
+  </details>
 </section>
 
 <section class="col flow">
-  <h2 id="q8">Câu 8: mỗi kỳ ai trả tiền, trả cho ai, bao nhiêu?</h2>
-  <p>Có. Mỗi lần xin số, Megapot phải trả phí cho Pyth Entropy bằng ETH. Ở kỳ 133:</p>
-  <ul>
-    <li>Bot gọi <code>runJackpot()</code> gửi kèm 0,00005625 ETH. Contract hỏi Entropy phí hiện tại là bao nhiêu (0,000045 ETH), chuyển đúng số đó đi và trả lại phần dư 0,00001125 ETH. Gửi dư khoảng 25% là để phòng phí đổi giữa lúc xem giá và lúc giao dịch được xử lý.</li>
-    <li>Entropy chia phí làm hai phần: <strong>phí provider</strong> (vào số dư của provider, provider tự rút) và <strong>phí của Pyth</strong> (vào quỹ chung của Pyth). Tỷ lệ cụ thể đọc được bằng hàm <code>getProviderInfoV2</code> và <code>getPythFee</code> trên Basescan.</li>
-    <li>Phí provider tăng theo <strong>giới hạn gas</strong> của bước trả kết quả, vì provider phải trả gas cho transaction trả số. Megapot xin <code>4.000.000</code> gas, đúng bằng công thức trong code: <code>1.500.000 + 250.000 × 10</code>, với 10 là số bonus tối đa của kỳ. Bonus tối đa tăng khi quỹ lớn lên, nên phí xin số cũng tăng theo.</li>
-    <li>Transaction trả số thực tế tốn 2.412.259 gas, khoảng 0,0000145 ETH, do ví Fortuna của Pyth trả. Phí 0,000045 ETH bao phần này và để lại phần lời cho Pyth.</li>
-  </ul>
-  <p>Nếu ETH ở mức 2.500 đến 4.000 USD, phí mỗi kỳ khoảng 0,11 đến 0,18 USD. Nói cách khác, một xổ số có quỹ hơn một triệu USDC chỉ tốn chưa tới 20 cent mỗi ngày cho phần số ngẫu nhiên.</p>
-  <p class="small muted">Riêng 5.000 USDC Guaranteed Prize ở cuối dòng thời gian không đi qua phần nào ở trên. Nó là một lệnh chuyển USDC bình thường từ ví <code>0xF6a9…fd56</code>, tức là khuyến mãi do Megapot trả ngoài contract, không phải giải do contract tính.</p>
-</section>
-
-<section class="col flow">
-  <h2 id="q9">Câu 9: ai quyết định kết quả, và ai có thể gian lận?</h2>
-  <p>Không ai chọn được kết quả theo ý mình trong một lần quay bình thường. Nhưng các bên không bình đẳng về thông tin và quyền hạn. Bảng dưới tóm tắt từng bên, dựa trên code Pyth đang chạy và code Megapot bản audit:</p>
+  <h2 id="an-toan">An toàn tới đâu? Ai có thể gian lận?</h2>
+  <p>Trong một kỳ quay bình thường, không ai chọn được kết quả theo ý mình. Nhưng các bên không ngang nhau về thông tin và quyền hạn. Bảng dưới dựa trên code Pyth đang chạy và code Megapot bản audit:</p>
   <div class="tablebox"><table class="who">
     <thead><tr><th>Bên</th><th>Biết gì, lúc nào</th><th>Làm được gì</th><th>Không làm được gì</th></tr></thead>
     <tbody>
@@ -549,40 +508,44 @@ print(draw(1, 30, 5, seed(0)), draw(1, 10, 1, seed(1)))   <span class="c"># [25,
     </tbody>
   </table></div>
 
-  <h3>Các rủi ro cụ thể</h3>
-  <div class="lesson"><b>1. Pyth biết trước và có quyền không trả số</b>Ngay khi transaction xin số vào block, Pyth tính được kết quả. Pyth không đổi được kết quả, nhưng có thể không gửi transaction trả số. Kỳ quay khi đó bị treo. Pyth tự nêu giới hạn này trong tài liệu thiết kế.</div>
-  <div class="lesson"><b>2. Thử nhiều kết quả nếu Pyth thông đồng</b>Vì nửa người dùng chỉ là dữ liệu block, một provider gian lận mà kiểm soát được thời điểm transaction xin số vào chain có thể tính trước vài kết quả ứng với vài block hoặc vài số thứ tự khác nhau, rồi chọn cái có lợi. Muốn vậy họ phải chen trước bot của Megapot hoặc thông đồng với sequencer. Đây là kịch bản lý thuyết; mình không thấy dấu hiệu nào ở kỳ 133. Nếu Megapot tự gửi một số bí mật của mình (băm trước, công bố sau) thay vì để Entropy tự sinh, kịch bản này sẽ khó hơn nhiều.</div>
-  <div class="lesson"><b>3. Owner thay nguồn số ngẫu nhiên</b>Trong bản audit, hàm <code>setEntropy</code> cho owner thay cả contract cấp số ngẫu nhiên. Callback chỉ kiểm "người gọi có phải contract đã cấu hình không", nên một contract thay thế có thể gửi về bất kỳ sáu số nào. Hàm <code>setEntropyProvider</code> cho đổi provider, và trong bản audit hàm này không ghi event. Code4rena xếp việc đổi provider giữa kỳ vào lỗi M-06 và M-07. Đây là điểm tin cậy lớn nhất của cả hệ thống, và nó nằm ở phía vận hành, không phải thuật toán.</div>
-  <div class="lesson"><b>4. Mở khóa rồi quay lại</b>Hàm <code>unlockJackpot</code> cho owner mở khóa một kỳ đang chờ số. Nó cần thiết khi Pyth không trả số, nhưng nếu owner và provider cùng gian lận, đây là đường để bỏ một kết quả xấu và quay lại.</div>
-  <div class="lesson"><b>5. Lộ chuỗi hash</b>Ai lấy được số gốc của Pyth sẽ tính được mọi mắt xích, tức là biết trước mọi kết quả. Độ an toàn phụ thuộc vào việc Pyth giữ máy chủ Fortuna.</div>
-  <p>Về audit: Trail of Bits audit Pyth Entropy (12/2023 đến 01/2024), báo cáo 4 lỗi High, trong đó có "người dùng ảnh hưởng được kết quả" và "các bên tích hợp có thể gặp tấn công thông đồng nhiều bên". Code4rena audit Megapot v2 (11/2025) có M-05 (chung seed, kỳ 133 cho thấy đã sửa), M-06 và M-07 (đổi provider), M-01 (owner đổi tham số giữa kỳ) và H-02 (callback hết gas khi bonus tối đa quá lớn). Báo cáo công khai không ghi lỗi nào đã sửa; mình chỉ tự kiểm được M-05.</p>
+
+  <h3>Các rủi ro cụ thể, xếp từ nặng tới nhẹ</h3>
+  <div class="lesson"><b>1. Owner Megapot thay nguồn số ngẫu nhiên</b>Trong bản audit, hàm <code>setEntropy</code> cho owner thay cả contract cấp số ngẫu nhiên. Contract xổ số chỉ kiểm "số có đến từ contract đã cấu hình không", nên một contract thay thế có thể gửi về bất kỳ sáu số nào. Hàm <code>setEntropyProvider</code> cho đổi provider, và trong bản audit hàm này không ghi event. Code4rena xếp việc đổi provider giữa kỳ vào lỗi M-06 và M-07. Đây là điểm phải tin lớn nhất, và nó nằm ở phía vận hành chứ không phải thuật toán.</div>
+  <div class="lesson"><b>2. Pyth biết trước và có thể không trả số</b>Ngay khi Megapot xin số, Pyth tính được kết quả, sớm hơn mọi người khoảng 4 giây. Pyth không đổi được kết quả, nhưng có thể không gửi nửa thứ hai, làm kỳ quay bị treo. Pyth tự nêu giới hạn này trong tài liệu.</div>
+  <div class="lesson"><b>3. Mở khóa rồi quay lại</b>Hàm <code>unlockJackpot</code> cho owner mở khóa một kỳ đang chờ số, cần thiết khi Pyth không trả số. Nhưng nếu owner và Pyth cùng gian lận, đây là đường để bỏ một kết quả xấu và quay lại.</div>
+  <div class="lesson"><b>4. Pyth chọn giữa vài kết quả</b>Vì nửa thứ nhất chỉ là dữ liệu block, một Pyth gian lận mà kiểm soát được lúc Megapot xin số (chen trước bot của Megapot, hoặc thông đồng với sequencer) có thể tính trước vài kết quả và chọn cái có lợi. Đây là kịch bản lý thuyết; mình không thấy dấu hiệu nào ở kỳ 133.</div>
+  <div class="lesson"><b>5. Lộ số bí mật gốc của Pyth</b>Ai lấy được số gốc của chuỗi hash sẽ biết trước mọi kết quả. Độ an toàn phụ thuộc vào việc Pyth bảo vệ máy chủ của mình.</div>
+  <p>Về audit: Trail of Bits audit Pyth Entropy (12/2023 đến 01/2024), báo cáo 4 lỗi mức High. Code4rena audit Megapot v2 (11/2025) có M-05 (chung seed, đã sửa như trên), M-06 và M-07 (đổi provider), M-01 (owner đổi tham số giữa kỳ) và H-02 (bước trả số hết gas khi bonus tối đa quá lớn). Báo cáo công khai không ghi lỗi nào đã sửa; mình chỉ tự kiểm được M-05.</p>
   <p class="small muted">Mình chưa đọc được mã nguồn Megapot đang chạy, nên các quyền của owner ở trên lấy từ bản audit. Danh sách file của bản đang chạy có thêm <code>Ownable2Step</code> và <code>AllowedManager</code>, nghĩa là phần phân quyền đã thay đổi. Mình cũng chưa kiểm owner là một ví đơn hay ví nhiều chữ ký.</p>
 </section>
 
 <section class="col flow">
-  <h2 id="q10">Câu 10: tự kiểm một kỳ bất kỳ thế nào?</h2>
-  <ol>
-    <li>Tìm transaction trả số: trên Basescan, mở contract ScaledEntropyProvider của Megapot <code>0x5D03…Ae51</code>, xem tab Events. Mỗi kỳ có một event <code>EntropyFulfilled</code> ngay sau 17:00 UTC; bấm vào là ra transaction trả số. Kiểm event <code>WinnersCalculated</code> trong đó để biết đó là kỳ nào.</li>
-    <li>Trong event <code>RevealedWithCallback</code>, chép nửa người dùng, nửa provider, cam kết, <code>numHashes</code> và randomNumber vào phòng kiểm chứng. Kết quả phải khớp <code>WinnersCalculated</code>.</li>
-    <li>Tra số thứ tự yêu cầu trên Pyth Entropy Explorer để ra transaction xin số. Kiểm nửa người dùng ở đó giống hệt.</li>
-    <li>Tra số thứ tự trừ 1 để ra mắt xích trước. Khi <code>numHashes = 1</code>, băm nửa provider một lần phải ra đúng nửa provider của yêu cầu trước.</li>
-    <li>Kiểm các event cảnh báo trên Jackpot trong những ngày quanh kỳ đó: <code>EntropyUpdated</code> (thay nguồn số), <code>JackpotUnlocked</code> (mở khóa kỳ đang quay), <code>EmergencyModeEnabled</code>. Kỳ bình thường không có event nào trong số này.</li>
-  </ol>
+  <h2 id="chi-phi">Mỗi kỳ Megapot trả bao nhiêu cho phần random?</h2>
+  <p>Mỗi lần xin số, Megapot trả phí cho Pyth Entropy bằng ETH. Ở kỳ 133 là <strong>0,000045 ETH</strong>, khoảng 0,11 đến 0,18 USD nếu ETH ở mức 2.500 đến 4.000 USD.</p>
+  <ul>
+    <li>Phí chia làm hai phần: phí cho provider và phí cho quỹ chung của Pyth. Tỷ lệ đọc được bằng hàm <code>getProviderInfoV2</code> và <code>getPythFee</code> trên Basescan.</li>
+    <li>Phí tăng theo lượng gas mà bước trả số được phép dùng, vì Pyth phải trả gas cho transaction đó. Megapot xin 4.000.000 gas, đúng công thức trong code: 1.500.000 cộng 250.000 nhân số bonus tối đa (10). Quỹ càng lớn thì bonus tối đa càng cao, nên phí cũng tăng.</li>
+    <li>Transaction trả số thực tế tốn khoảng 0,0000145 ETH gas, do Pyth trả. Phần còn lại của phí là tiền công của Pyth.</li>
+  </ul>
+  <p class="small muted">Riêng khoản 5.000 USDC Guaranteed Prize trong bài của Megapot là một lệnh chuyển USDC bình thường từ ví <code>0xF6a9…fd56</code>. Đó là khuyến mãi Megapot trả ngoài contract, không liên quan tới cơ chế quay số.</p>
 </section>
 
 <section class="col flow">
-  <h2>Nhìn lại</h2>
-  <div class="tablebox"><table>
-    <thead><tr><th>Câu hỏi</th><th>Trả lời ngắn</th></tr></thead>
-    <tbody>
-      <tr><td>Số trúng đến từ đâu?</td><td><code>keccak256</code> của nửa Pyth (khóa bằng chuỗi hash) và nửa sinh từ dữ liệu block, rồi Fisher–Yates đổi ra 5 số và bonus.</td></tr>
-      <tr><td>Ai quyết định?</td><td>Không bên nào chọn được. Kết quả được định sẵn ngay khi transaction xin số vào block.</td></tr>
-      <tr><td>Ai biết trước?</td><td>Pyth, sớm khoảng 4 giây.</td></tr>
-      <tr><td>Megapot trả gì mỗi kỳ?</td><td>Phí Entropy bằng ETH (0,000045 ETH ở kỳ 133), chia cho provider và Pyth, tăng theo gas của bước trả số.</td></tr>
-      <tr><td>Có tự kiểm được không?</td><td>Có, chỉ cần dữ liệu công khai và một hàm <code>keccak256</code>. Kỳ 133 khớp cả năm phép kiểm.</td></tr>
-      <tr><td>Rủi ro lớn nhất?</td><td>Quyền của owner Megapot với nguồn số ngẫu nhiên, rồi tới việc phải tin Pyth trung thực.</td></tr>
-    </tbody>
-  </table></div>
+  <h2 id="ket-luan">Kết luận</h2>
+  <p>Về <strong>minh bạch</strong>, cơ chế của Megapot làm tốt: mọi bước nằm trên chain, ai cũng tự kiểm được, và kỳ 133 khớp tới từng quả bóng. Về <strong>an toàn</strong>, người chơi, người ngoài và cả sequencer đều không chỉnh được kết quả. Phần còn lại là niềm tin vào hai bên: Pyth, và owner Megapot.</p>
+  <p>Hai thay đổi sẽ giảm đáng kể phần phải tin đó:</p>
+  <ul>
+    <li>Megapot tự giữ một số bí mật làm nửa thứ nhất (băm trước, công bố sau), thay vì để Entropy tạo từ dữ liệu block. Khi đó Pyth không còn biết trước kết quả.</li>
+    <li>Đặt các hàm đổi nguồn số ngẫu nhiên sau một khoảng chờ bắt buộc (timelock) và ví nhiều chữ ký, có ghi event, để người chơi kịp thấy trước khi thay đổi có hiệu lực.</li>
+  </ul>
+
+  <h3>Tự kiểm một kỳ bất kỳ</h3>
+  <ol>
+    <li>Trên Basescan, mở contract ScaledEntropyProvider của Megapot <code>0x5D03…Ae51</code>, tab Events. Mỗi kỳ có một event <code>EntropyFulfilled</code> ngay sau 17:00 UTC; bấm vào để mở transaction trả số.</li>
+    <li>Trong event <code>RevealedWithCallback</code>, chép hai nửa, cam kết, <code>numHashes</code> và số ngẫu nhiên vào công cụ kiểm ở trên. Sáu quả bóng phải khớp event <code>WinnersCalculated</code>.</li>
+    <li>Tra số thứ tự yêu cầu (và số đó trừ 1) trên <a href="https://entropy-explorer.pyth.network/?chain=base&amp;search=556741" target="_blank" rel="noopener">Pyth Entropy Explorer</a> để ra transaction xin số và mắt xích trước.</li>
+    <li>Kiểm Jackpot <code>0x3bAe…42a2</code> có event cảnh báo nào quanh kỳ đó không: <code>EntropyUpdated</code> (thay nguồn số), <code>JackpotUnlocked</code> (mở khóa kỳ đang quay), <code>EmergencyModeEnabled</code>. Kỳ bình thường không có event nào trong số này.</li>
+  </ol>
 </section>
 
 <hr class="col">

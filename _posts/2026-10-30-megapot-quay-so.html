@@ -268,10 +268,8 @@ details.more > div{padding-bottom:16px}
 </header>
 
 <section class="col flow">
-  <h2 id="vi-sao">Vì sao contract không tự random được?</h2>
-  <p>Một blockchain có hàng nghìn máy (node) cùng chạy lại mọi transaction để tự kiểm kết quả, rồi so với nhau. Giả sử contract có một hàm <code>random()</code> giống trong Python. Khi Megapot quay số, máy A ra số 7, máy B ra số 23, máy C ra số 4. Mỗi máy sẽ tính ra một danh sách người trúng khác nhau, số dư ví khác nhau, và các máy không còn thống nhất được đâu là kết quả đúng.</p>
-  <p>Vì vậy EVM cố ý không có hàm random. Mọi thứ contract đọc được phải giống hệt nhau trên mọi máy. Những giá trị trông có vẻ ngẫu nhiên như thời gian của block (<code>block.timestamp</code>) hay <code>block.prevrandao</code> thật ra là dữ liệu của block: mọi máy đọc ra cùng một số, và người tạo ra block biết số đó trước tiên.</p>
-  <p>Trên Base, người tạo block là <strong>một sequencer duy nhất</strong> (do Coinbase vận hành). Sequencer biết trước dữ liệu block và chọn được transaction nào vào block nào. Nếu số trúng lấy thẳng từ dữ liệu block, sequencer sẽ biết trước kết quả. Vì vậy Megapot cần một nguồn bên ngoài: Pyth Entropy.</p>
+  <h2 id="vi-sao">Vì sao Megapot cần một dịch vụ bên ngoài?</h2>
+  <p>Smart contract không tự tạo được số ngẫu nhiên an toàn. Thứ trông có vẻ ngẫu nhiên duy nhất mà contract đọc được là dữ liệu của block, như thời gian (<code>block.timestamp</code>) hay <code>block.prevrandao</code>. Nhưng người tạo block biết những giá trị này trước mọi người. Trên Base, đó là sequencer do Coinbase vận hành. Nếu Megapot lấy số trúng từ dữ liệu block, sequencer sẽ biết trước kết quả. Vì vậy Megapot dùng một dịch vụ bên ngoài: Pyth Entropy.</p>
 
   <h3>Pyth Entropy là gì?</h3>
   <p><strong>Pyth Network</strong> là một mạng oracle, tức là dịch vụ đưa dữ liệu từ bên ngoài vào blockchain. Pyth nổi tiếng nhất với dữ liệu giá tài sản cho các ứng dụng DeFi. <strong>Pyth Entropy</strong> là một sản phẩm khác của Pyth, chuyên cấp số ngẫu nhiên cho smart contract trên nhiều chain EVM, trong đó có Base. Dịch vụ cùng loại nổi tiếng khác là Chainlink VRF.</p>

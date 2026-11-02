@@ -1,27 +1,32 @@
 ---
 layout: default
 ---
+{% assign t = site.data.i18n[page.lang] %}
 {% assign words = content | strip_html | number_of_words %}
 {% assign minutes = words | divided_by: 220 | plus: 1 %}
+{% comment %} Bài mới hơn / cũ hơn chỉ tính trong cùng ngôn ngữ. {% endcomment %}
+{% assign same = site.posts | where: "lang", page.lang %}
+{% assign newer = nil %}{% assign older = nil %}{% assign found = false %}
+{% for p in same %}{% if found %}{% assign older = p %}{% break %}{% endif %}{% if p.url == page.url %}{% assign found = true %}{% else %}{% assign newer = p %}{% endif %}{% endfor %}
 <article class="post container">
   <header class="post-head">
     <h1>{{ page.title }}</h1>
   </header>
   <div class="post-body grid">
     <dl class="post-meta">
-      <div><dt>Ngày đăng</dt><dd><time class="num" datetime="{{ page.date | date_to_xmlschema }}">{{ page.date | date: '%d/%m/%Y' }}</time></dd></div>
-      <div><dt>Thời gian đọc</dt><dd>{{ minutes }} phút</dd></div>
-      {% if page.categories.size > 0 %}<div><dt>Chủ đề</dt><dd>{% for c in page.categories %}<a href="{{ '/chu-de/' | relative_url }}#{{ c | slugify }}">{{ c }}</a>{% unless forloop.last %}, {% endunless %}{% endfor %}</dd></div>{% endif %}
+      <div><dt>{{ t.published }}</dt><dd><time class="num" datetime="{{ page.date | date_to_xmlschema }}">{{ page.date | date: t.date_long }}</time></dd></div>
+      <div><dt>{{ t.reading_time }}</dt><dd>{{ minutes }} {{ t.minutes }}</dd></div>
+      {% if page.categories.size > 0 %}<div><dt>{{ t.nav_topics }}</dt><dd>{% for c in page.categories %}<a href="{{ t.topics_url | relative_url }}#{{ c | downcase | slugify }}">{{ c }}</a>{% unless forloop.last %}, {% endunless %}{% endfor %}</dd></div>{% endif %}
     </dl>
     <div class="prose">
 {{ content }}
     </div>
   </div>
 
-  {% if page.previous or page.next %}
-  <nav class="post-nav" aria-label="Bài khác">
-    {% if page.next %}<a class="newer" href="{{ page.next.url | relative_url }}"><span>Bài mới hơn</span>{{ page.next.title }}</a>{% endif %}
-    {% if page.previous %}<a class="older" href="{{ page.previous.url | relative_url }}"><span>Bài cũ hơn</span>{{ page.previous.title }}</a>{% endif %}
+  {% if newer or older %}
+  <nav class="post-nav" aria-label="{{ t.other_posts }}">
+    {% if newer %}<a class="newer" href="{{ newer.url | relative_url }}"><span>{{ t.newer }}</span>{{ newer.title }}</a>{% endif %}
+    {% if older %}<a class="older" href="{{ older.url | relative_url }}"><span>{{ t.older }}</span>{{ older.title }}</a>{% endif %}
   </nav>
   {% endif %}
 </article>

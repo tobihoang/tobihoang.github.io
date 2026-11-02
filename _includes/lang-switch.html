@@ -1,0 +1,10 @@
+{%- assign ls_lang = page.lang | default: 'vi' -%}
+{%- if ls_lang == 'en' -%}{%- assign ls_other = 'vi' -%}{%- else -%}{%- assign ls_other = 'en' -%}{%- endif -%}
+{%- assign ls_t = site.data.i18n[ls_lang] -%}
+{%- assign ls_url = site.data.i18n[ls_other].home -%}
+{%- if page.ref -%}
+  {%- assign ls_match = site.posts | where: "ref", page.ref | where: "lang", ls_other | first -%}
+  {%- unless ls_match -%}{%- assign ls_match = site.pages | where: "ref", page.ref | where: "lang", ls_other | first -%}{%- endunless -%}
+  {%- if ls_match -%}{%- assign ls_url = ls_match.url -%}{%- endif -%}
+{%- endif -%}
+<a class="lang-switch" href="{{ ls_url | relative_url }}" hreflang="{{ ls_other }}" lang="{{ ls_other }}" aria-label="{{ ls_t.switch_label }}" title="{{ ls_t.switch_label }}">{{ ls_t.switch_code }}</a>

@@ -1,0 +1,10 @@
+{%- if page.ref -%}
+{%- assign hl_items = site.posts | where: "ref", page.ref -%}
+{%- assign hl_pages = site.pages | where: "ref", page.ref -%}
+{%- assign hl_items = hl_items | concat: hl_pages -%}
+{%- if hl_items.size > 1 -%}
+{%- for it in hl_items %}
+<link rel="alternate" hreflang="{{ it.lang | default: 'vi' }}" href="{{ it.url | absolute_url }}">
+{%- endfor -%}
+{%- endif -%}
+{%- endif -%}

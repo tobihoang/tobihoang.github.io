@@ -1,0 +1,42 @@
+{%- assign t = site.data.i18n[page.lang] -%}
+{%- assign posts = site.posts | where: "lang", page.lang -%}
+{% assign latest = posts.first %}
+<section class="hero container" aria-labelledby="hero-head">
+  <h1 id="hero-head" class="visually-hidden">{{ t.posts_on }} {{ site.title }}</h1>
+  {% if latest %}
+  {% if latest.summary %}{% assign summary = latest.summary %}{% else %}{% assign summary = latest.description | default: latest.excerpt | strip_html | normalize_whitespace | split: '. ' | first | append: '.' %}{% endif %}
+  <article class="latest" aria-labelledby="lead-title">
+    <time class="lead-date num" datetime="{{ latest.date | date_to_xmlschema }}">{{ latest.date | date: t.date_short }} <small>{{ latest.date | date: '%Y' }}</small></time>
+    <div class="lead-body">
+      <h2 id="lead-title" class="lead-title">{{ latest.title }}</h2>
+      <p class="lead-summary">{{ summary }}</p>
+      <p class="lead-actions">
+        <a class="read" href="{{ latest.url | relative_url }}" aria-describedby="lead-title">{{ t.read }}</a>
+        {% if latest.interactive %}<span class="flag">{{ t.interactive }}</span>{% endif %}
+        {% if latest.categories.size > 0 %}<span class="flag">{{ latest.categories | join: ', ' }}</span>{% endif %}
+      </p>
+    </div>
+  </article>
+  {% endif %}
+</section>
+
+{% assign rest = posts | where_exp: "p", "p.url != latest.url" %}
+{% assign years = rest | group_by_exp: "p", "p.date | date: '%Y'" %}
+{% if years.size > 0 %}
+<section class="archive container" aria-label="{{ t.previous_posts }}">
+  {% for year in years %}
+  <div class="year">
+    <h2 class="year-num num">{{ year.name }}</h2>
+    <ul class="entries">
+      {% for post in year.items %}
+      <li class="entry">
+        <time class="num" datetime="{{ post.date | date_to_xmlschema }}">{{ post.date | date: t.date_short }}</time>
+        <p class="entry-title"><a href="{{ post.url | relative_url }}">{{ post.title }}</a></p>
+        <p class="entry-topics">{{ post.categories | join: ', ' }}</p>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}

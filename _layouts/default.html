@@ -1,10 +1,12 @@
 <!doctype html>
-<html lang="{{ site.lang | default: 'vi' }}">
+{%- assign lang = page.lang | default: 'vi' -%}
+{%- assign t = site.data.i18n[lang] -%}
+<html lang="{{ lang }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 {% if page.title %}{% assign page_title = page.title | append: ' · ' | append: site.title %}{% else %}{% assign page_title = site.title %}{% endif %}
-{% capture page_desc %}{% if page.description %}{{ page.description }}{% elsif page.excerpt %}{{ page.excerpt }}{% else %}{{ site.description }}{% endif %}{% endcapture %}
+{% capture page_desc %}{% if page.description %}{{ page.description }}{% elsif page.excerpt %}{{ page.excerpt }}{% else %}{{ t.description }}{% endif %}{% endcapture %}
 {% assign page_desc = page_desc | strip_html | normalize_whitespace | truncate: 180 %}
 <title>{{ page_title }}</title>
 <meta name="description" content="{{ page_desc | escape }}">
@@ -15,8 +17,8 @@
 <meta property="og:type" content="{% if page.date %}article{% else %}website{% endif %}">
 <meta property="og:url" content="{{ page.url | absolute_url }}">
 <meta name="twitter:card" content="summary">
-<link rel="canonical" href="{{ page.url | absolute_url }}">
-<link rel="alternate" type="application/rss+xml" title="{{ site.title }}" href="{{ '/feed.xml' | relative_url }}">
+<link rel="canonical" href="{{ page.url | absolute_url }}">{% include hreflang.html %}
+<link rel="alternate" type="application/rss+xml" title="{{ site.title }}" href="{{ t.feed_url | relative_url }}">
 <link rel="icon" href="{{ '/static/img/favicon.ico' | relative_url }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -30,14 +32,14 @@
 <body>
 <header class="site-head">
   <div class="container head">
-    <a class="wordmark" href="{{ '/' | relative_url }}" aria-label="{{ site.title }}, trang chủ">{{ site.title }}</a>
-    <nav class="nav" aria-label="Điều hướng chính">
-      <a href="{{ '/' | relative_url }}"{% if page.url == '/' %} aria-current="page"{% endif %}>Bài viết</a>
-      <a href="{{ '/chu-de/' | relative_url }}"{% if page.url == '/chu-de/' %} aria-current="page"{% endif %}>Chủ đề</a>
-      <a href="{{ '/about/' | relative_url }}"{% if page.url == '/about/' %} aria-current="page"{% endif %}>Giới thiệu</a>
+    <a class="wordmark" href="{{ t.home | relative_url }}" aria-label="{{ site.title }}, {{ t.home_label }}">{{ site.title }}</a>
+    <nav class="nav" aria-label="{{ t.nav_label }}">
+      <a href="{{ t.home | relative_url }}"{% if page.url == t.home %} aria-current="page"{% endif %}>{{ t.nav_posts }}</a>
+      <a href="{{ t.topics_url | relative_url }}"{% if page.url == t.topics_url %} aria-current="page"{% endif %}>{{ t.nav_topics }}</a>
+      <a href="{{ t.about_url | relative_url }}"{% if page.url == t.about_url %} aria-current="page"{% endif %}>{{ t.nav_about }}</a>
       <a href="{{ site.github }}">GitHub</a>
     </nav>
-    {% include theme-toggle.html %}
+    <div class="head-tools">{% include lang-switch.html %}{% include theme-toggle.html %}</div>
   </div>
 </header>
 
@@ -49,7 +51,7 @@
   <div class="container foot">
     <p>© {{ site.time | date: '%Y' }} {{ site.author }}</p>
     <ul class="foot-links">
-      <li><a href="{{ '/feed.xml' | relative_url }}">RSS</a></li>
+      <li><a href="{{ t.feed_url | relative_url }}">RSS</a></li>
       <li><a href="{{ site.github }}">GitHub</a></li>
     </ul>
   </div>

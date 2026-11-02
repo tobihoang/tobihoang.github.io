@@ -1,4 +1,6 @@
-# Nhãn giao diện theo ngôn ngữ. Bài và trang chọn ngôn ngữ bằng front matter `lang` (mặc định vi).
+# Nhãn giao diện theo ngôn ngữ. Bài chọn ngôn ngữ bằng front matter `lang` (mặc định vi).
+# Site chỉ có một trang chủ, một trang chủ đề và một RSS (tiếng Việt); bài tiếng Anh là bản dịch,
+# nối với bài gốc bằng cùng khóa `ref`, và chỉ mở được qua nút EN/VI trong bài.
 vi:
   home: "/"
   topics_url: "/chu-de/"
@@ -30,10 +32,10 @@ vi:
   date_long: "%d/%m/%Y"
   date_month: "%m/%Y"
 en:
-  home: "/en/"
-  topics_url: "/en/topics/"
-  about_url: "/en/about/"
-  feed_url: "/en/feed.xml"
+  home: "/"
+  topics_url: "/chu-de/"
+  about_url: "/about/"
+  feed_url: "/feed.xml"
   description: "Where I write about AI, blockchain, programming and life in tech."
   home_label: "home"
   nav_label: "Main navigation"

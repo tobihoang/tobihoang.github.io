@@ -1,7 +1,6 @@
 ---
 layout: page
 title: Giới thiệu
-ref: about
 permalink: /about/
 ---
 

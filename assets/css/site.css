@@ -29,6 +29,12 @@
 .nav a:hover { color: var(--color-ink); text-decoration: underline; text-decoration-color: var(--color-accent); }
 .nav a[aria-current="page"] { color: var(--color-ink); text-decoration: underline; text-decoration-color: var(--color-accent); text-decoration-thickness: 2px; text-underline-offset: 0.45em; }
 
+/* Language switch beside the mode switch: a link to the same page in the other language */
+.head-tools { display: flex; align-items: center; gap: var(--space-xs); flex: none; }
+.lang-switch { display: inline-grid; place-items: center; min-width: 44px; height: 44px; padding: 0 var(--space-xs); border: var(--rule-hair) solid var(--color-rule); border-radius: var(--radius-pill); color: var(--color-ink-2); font-size: var(--text-sm); font-weight: 600; text-decoration: none; transition: color var(--dur-short) var(--ease-out), border-color var(--dur-short) var(--ease-out); }
+.lang-switch:hover { color: var(--color-ink); border-color: var(--color-muted); }
+.lang-switch:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+
 /* Mode switch: a moon while the page is light, a sun while it is dark */
 .theme-toggle { display: inline-grid; place-items: center; flex: none; width: 44px; height: 44px; padding: 0; border: var(--rule-hair) solid var(--color-rule); border-radius: var(--radius-pill); background: transparent; color: var(--color-ink-2); cursor: pointer; transition: color var(--dur-short) var(--ease-out), border-color var(--dur-short) var(--ease-out), transform var(--dur-micro) var(--ease-out); }
 .theme-toggle:hover { color: var(--color-ink); border-color: var(--color-muted); }
@@ -169,5 +175,5 @@
   .post-nav .older { grid-column: 1; text-align: left; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .theme-toggle, .read, .chips a { transition: none; }
+  .theme-toggle, .lang-switch, .read, .chips a { transition: none; }
 }

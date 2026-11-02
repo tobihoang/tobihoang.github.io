@@ -21,3 +21,10 @@ exclude:
   - LICENSE
   - Gemfile
   - Gemfile.lock
+
+# Bài và trang mặc định là tiếng Việt; bản tiếng Anh đặt `lang: en` và dùng chung `ref` với bản tiếng Việt.
+defaults:
+  - scope:
+      path: ""
+    values:
+      lang: vi

@@ -1,0 +1,30 @@
+{%- assign t = site.data.i18n[page.lang] -%}
+{%- assign posts = site.posts | where: "lang", page.lang -%}
+{% comment %} Gộp chủ đề chỉ khác chữ hoa, chữ thường (Security, security) và xếp theo bảng chữ cái, không phân biệt hoa thường. Chỉ lấy bài cùng ngôn ngữ với trang. {% endcomment %}
+{% assign keys = "" | split: "" %}
+{% for p in posts %}{% for c in p.categories %}{% assign k = c | downcase %}{% assign keys = keys | push: k %}{% endfor %}{% endfor %}
+{% assign keys = keys | uniq | sort_natural %}
+<section class="container">
+  <header class="page-head">
+    <h1>{{ t.topics_title }}</h1>
+    <ul class="chips" aria-label="{{ t.jump_to_topic }}">
+      {% for k in keys %}{% assign label = k %}{% assign count = 0 %}{% for p in posts %}{% for c in p.categories %}{% assign ck = c | downcase %}{% if ck == k %}{% if c != k %}{% assign label = c %}{% endif %}{% assign count = count | plus: 1 %}{% endif %}{% endfor %}{% endfor %}<li><a href="#{{ k | slugify }}">{{ label }} <span class="num">{{ count }}</span></a></li>{% endfor %}
+    </ul>
+  </header>
+  <div class="topic-index">
+    {% for k in keys %}
+    {% assign label = k %}
+    <section class="topic" id="{{ k | slugify }}" aria-labelledby="t-{{ k | slugify }}">
+      {% capture items %}{% for p in posts %}{% assign hit = false %}{% for c in p.categories %}{% assign ck = c | downcase %}{% if ck == k %}{% assign hit = true %}{% if c != k %}{% assign label = c %}{% endif %}{% endif %}{% endfor %}{% if hit %}
+        <li class="entry">
+          <time class="num" datetime="{{ p.date | date_to_xmlschema }}">{{ p.date | date: t.date_month }}</time>
+          <p class="entry-title"><a href="{{ p.url | relative_url }}">{{ p.title }}</a></p>
+          {% if p.interactive %}<p class="entry-topics">{{ t.interactive }}</p>{% endif %}
+        </li>{% endif %}{% endfor %}{% endcapture %}
+      <h2 id="t-{{ k | slugify }}">{{ label }}</h2>
+      <ul class="entries">{{ items }}
+      </ul>
+    </section>
+    {% endfor %}
+  </div>
+</section>

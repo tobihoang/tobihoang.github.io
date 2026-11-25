@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "1.092 tấm ảnh 0,65 MB chiếm 4,4 MB trên iPhone: chuyện ô 4 KB và asset catalog"
-date: 2026-11-25 21:30:00 +0700
+date: 2026-11-25 20:00:00 +0700
 categories: [iOS, Xcode, Performance]
 permalink: /ios-asset-catalog-o-4kb/
 summary: "App của mình tải về 6,9 MB nhưng cài xong chiếm 20,1 MB. Thủ phạm là hơn nghìn tấm ảnh pixel rất nhỏ, mỗi tấm vẫn chiếm trọn một ô 4 KB. Gom chúng vào asset catalog giúp bản cài nhẹ đi khoảng 4 MB mà không phải sửa dòng Swift nào."
